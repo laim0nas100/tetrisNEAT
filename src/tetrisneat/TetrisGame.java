@@ -22,18 +22,20 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class TetrisGame extends JPanel {
-    public static long winScore = 1000000;
+    public static long winScore = 500000;
+    public static int spawnFluctuation = 4; // max 4
+    public static boolean DETERMINISTIC = false;
 //    public static Integer[] usablePieces = {0, 1, 2, 3, 4, 5, 6};
     
 //    public static Integer[] usablePieces = {0};//LINE OK
-    public static Integer[] usablePieces = {1};//DNF >440
+//    public static Integer[] usablePieces = {1};//DNF >440
 //    public static Integer[] usablePieces = {2};//DNF >100
-//    public static Integer[] usablePieces = {3};//BLOCK OK
+    public static Integer[] usablePieces = {3};//BLOCK OK
 //    public static Integer[] usablePieces = {4};//DNF >100
 //    public static Integer[] usablePieces = {5};//DNF >100
 //    public static Integer[] usablePieces = {6};//DNF >100
 //    public static Integer[] usablePieces = {0,3};// LINE + BLOCK
-    public static boolean DETERMINISTIC = true;
+    
     public boolean visible;
     public int rowsCleared;
     public boolean gameOver;
@@ -138,7 +140,8 @@ public class TetrisGame extends JPanel {
             if(DETERMINISTIC){
                 pieceOrigin = new Point(5,2);
             }else{
-                pieceOrigin = new Point(2+r.nextInt(5), 2);
+                int right = 5 - spawnFluctuation;
+                pieceOrigin = new Point(right+r.nextInt(spawnFluctuation), 2);
             }
                             
             rotation = 0;

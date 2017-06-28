@@ -24,7 +24,7 @@ public class NEATController implements Runnable {
     public void makeMove(){
         
         TetrisGame game = gm.game;
-        double[] move = genome.evaluateNetwork(formatBoard(game.getBoard()));
+        double[] move = genome.evaluateNetworkTopological(formatBoard(game.getBoard()));
         int i = 0;
         int max = 0;
         for(;i<4;i++){
@@ -47,15 +47,16 @@ public class NEATController implements Runnable {
                 game.rotate(1);
                 break;
         }
+        game.dropDown();
         game.score+=1;
         movesMade++;
-        gm.game.dropDown();
+        
     }
     public double evaluateFitness(){
         if(gm == null){
             return 0;
         }
-        fitness = Math.pow(game().score,2);
+        fitness = Math.max(fitness, game().score);
         genome.fitness = fitness;
         return fitness;
     }

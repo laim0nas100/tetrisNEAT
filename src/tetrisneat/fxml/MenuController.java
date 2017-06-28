@@ -1,3 +1,4 @@
+
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -50,23 +51,28 @@ public class MenuController extends BaseController {
     public boolean DISPLAY_WHILE_LEARNING = true;
     public long LEARNING_STEP_DELAY = 0;
     public static final long BEST_STEP_DELAY = 50;
+    public static final int THREAD_COUNT = 4;
     public NEATController best = null;
     public ArrayList<NEATController> controller = new ArrayList<>();
     public Pool pool;
     public DynamicTaskExecutor exe = new DynamicTaskExecutor();
-//    public ExecutorService exe = Executors.newFixedThreadPool(4);
     
     public ArrayList<NEATController> createControllers(Pool pool){
         ArrayList<NEATController> controllers = new ArrayList<>();
         for(Species spec:pool.poolSpecies){
             for(Genome genome : spec.genomes){
-                genome.generateNetwork();
-                NEATController con = new NEATController();
-                con.genome = genome;
-                controllers.add(con);
+                controllers.add(createController(genome));
             }
         }
         return controllers;
+    }
+    public NEATController createController(Genome genome){
+        NEATController con = new NEATController();
+        if(genome.network == null)
+            genome.generateNetwork();
+        
+        con.genome = genome;
+        return con;
     }
     public ArrayList<Runnable> neatSimulation(ArrayList<NEATController> controller){
   
@@ -82,23 +88,27 @@ public class MenuController extends BaseController {
         
     }
     public NEATController makeNEATControlledGame(NEATController con,long delay,boolean visible){
+        TetrisGame.GameFrame[] gm = new TetrisGame.GameFrame[1];
         Runnable r =() ->{
-            TetrisGame.GameFrame gm = TetrisGame.initNewGame(visible);
-            TetrisGame game = gm.game;
-            con.gm = gm;
-            while(!game.gameOver){
-                con.makeMove();
-                try {
-                    
-                    Thread.sleep(Math.max(delay, LEARNING_STEP_DELAY));
-                } catch (InterruptedException ex) {
-//                    Logger.getLogger(main.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            System.out.println("Game Over "+game.score);
-            con.gm.frame.dispose();
+                try{
+                    gm[0] = TetrisGame.initNewGame(visible);
+                    TetrisGame game = gm[0].game;
+                    con.gm = gm[0];
+                    while(!game.gameOver){
+                        con.makeMove();
+                        long de = Math.max(delay, LEARNING_STEP_DELAY);
+                        if(de>0)
+                            Thread.sleep(de);
+                    }
+                    System.out.println("Game Over "+game.score);
 
-        };
+
+                }catch (InterruptedException e){
+                    System.err.println("Interrupted ");
+                }finally{
+                    gm[0].frame.dispose();
+                }
+            };
         con.logic = r;
         return con;
     }
@@ -124,7 +134,8 @@ public class MenuController extends BaseController {
             return;
         }
         running = true;
-        exe.setRunnerSize(4);
+//        exe = Executors.newFixedThreadPool(THREAD_COUNT);
+        exe.setRunnerSize(THREAD_COUNT);
         new Thread( () ->{
             while(leftToEnqueue.decrementAndGet()>=0){
                 controller = createControllers(pool);
@@ -147,7 +158,7 @@ public class MenuController extends BaseController {
 
 
 
-                System.out.println(best.game().rowsCleared+" "+best.game().score+"  "+best.genome.genes.size());
+                System.out.println(best.game().rowsCleared+" "+best.genome.fitness+"  "+best.genome.genes.size());
                 pool.newGeneration();
                 System.out.println("New generation: "+pool.stats.generation);
                 update();
@@ -184,8 +195,8 @@ public class MenuController extends BaseController {
         Platform.runLater(() ->{
             enqueueLabel.setText(""+leftToEnqueue.get());
             generationLabel.setText(pool.stats.generation+"");
-            if(best != null)
-                bestScoreLabel.setText(best.game().score+"");
+            if(best != null && best.genome != null)
+                bestScoreLabel.setText((int)best.genome.fitness+"");
             LEARNING_STEP_DELAY = Integer.parseInt(learningDelayText.getText());
         });
     }
@@ -214,7 +225,7 @@ public class MenuController extends BaseController {
     public void stop(){
         leftToEnqueue.set(0);
         leftExecuting.set(0);
-        exe.stopEverything();
+        exe.stopEverything(false);
         wait.wakeUp();
         update();
     }
@@ -228,13 +239,22 @@ public class MenuController extends BaseController {
     }
     public void load() throws FileNotFoundException, IOException{
         if(running){
+            System.out.println("Running");
             return;
         }
+        try{
+            System.out.println("Before read");
         ArrayList<String> read = new ArrayList<>(LibraryLB.FileManaging.FileReader.readFromFile(this.generationText.getText()));
         pool = g.fromJson(read.get(0), Pool.class);
-//        controller = createControllers(pool);
-//        learn(pool,controller);
-        update();
+        System.out.println("After read");
+        best = createController(pool.best);
+        best.genome.generateNetwork();
+        System.out.println(best == null);
+//        update();
+        System.out.println("Load done");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }
 

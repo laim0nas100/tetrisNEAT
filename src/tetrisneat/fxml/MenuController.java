@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -140,19 +142,21 @@ public class MenuController extends BaseController {
             while(leftToEnqueue.decrementAndGet()>=0){
                 controller = createControllers(pool);
                 ArrayList<Runnable> neatSimulation = neatSimulation(controller);
-                leftExecuting.set(controller.size());
+                leftExecuting.getAndSet(controller.size());
+                CountDownLatch latch = new CountDownLatch(controller.size());
+                leftExecuting.set(neatSimulation.size());
                 for(Runnable r:neatSimulation){
                     exe.submit(() ->{
                             r.run();
-                            leftExecuting.decrementAndGet();
-                            wait.wakeUp();
+                            latch.countDown();
                         }
                     );
                 }
-
-                while(leftExecuting.get()>0){
-                    wait.requestWait();
-                    wait.conditionalWait();
+                
+                try {
+                    latch.await();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(MenuController.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 learn(pool,controller);
 
@@ -167,8 +171,8 @@ public class MenuController extends BaseController {
                     new Thread( () ->{
                             try {
                                 save("pool"+pool.stats.generation);
-                            } catch (FileNotFoundException | UnsupportedEncodingException ex) {
-                                Logger.getLogger(MenuController.class.getName()).log(Level.SEVERE, null, ex);
+                            } catch (FileNotFoundException | UnsupportedEncodingException x) {
+                                Logger.getLogger(MenuController.class.getName()).log(Level.SEVERE, null, x);
                             }
                         }
                     ).start();
@@ -178,11 +182,13 @@ public class MenuController extends BaseController {
             stop();
             running = false;
             update();
+        
         }
        ).start();
         
         
     }
+    
     @Override
     public void exit() {
         leftToEnqueue.set(0);

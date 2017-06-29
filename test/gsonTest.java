@@ -4,14 +4,13 @@
  * and open the template in the editor.
  */
 
-import NEATPort.Pool;
 import com.google.gson.Gson;
+import libneat.Pool;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  *
@@ -43,13 +42,13 @@ public class gsonTest {
     //
     @Test
     public void hello() {
-        Gson g = new Gson();
-        Pool pool = new Pool();
-        pool.initializePool();
-        System.out.println(pool);
-        String toJson = g.toJson(pool);
-        System.out.println(toJson);
-        Pool newPool = g.fromJson(toJson, Pool.class);
-        System.out.println(toJson.equals(g.toJson(newPool)));
+//        Gson g = new Gson();
+//        Pool pool = new Pool();
+//        pool.initializePool();
+//        System.out.println(pool);
+//        String toJson = g.toJson(pool);
+//        System.out.println(toJson);
+//        Pool newPool = g.fromJson(toJson, Pool.class);
+//        System.out.println(toJson.equals(g.toJson(newPool)));
     }
 }

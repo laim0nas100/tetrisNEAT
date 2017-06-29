@@ -10,15 +10,13 @@ import LibraryLB.FX.SceneManagement.BaseController;
 import LibraryLB.Log;
 import LibraryLB.Threads.DynamicTaskExecutor;
 import LibraryLB.Threads.Sync.ConditionalWait;
-import NEATPort.Genome;
-import NEATPort.Pool;
-import NEATPort.Species;
 import com.google.gson.Gson;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,6 +24,8 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import libneat.Genome;
+import libneat.Pool;
 import tetrisneat.NEATController;
 import tetrisneat.TetrisGame;
 
@@ -59,18 +59,14 @@ public class MenuController extends BaseController {
     
     public ArrayList<NEATController> createControllers(Pool pool){
         ArrayList<NEATController> controllers = new ArrayList<>();
-        for(Species spec:pool.poolSpecies){
-            for(Genome genome : spec.genomes){
-                controllers.add(createController(genome));
-            }
+        for(Genome genome : pool.getPopulation()){
+            controllers.add(createController(genome));
         }
+        
         return controllers;
     }
     public NEATController createController(Genome genome){
         NEATController con = new NEATController();
-        if(genome.network == null)
-            genome.generateNetwork();
-        
         con.genome = genome;
         return con;
     }
@@ -100,7 +96,7 @@ public class MenuController extends BaseController {
                         if(de>0)
                             Thread.sleep(de);
                     }
-                    System.out.println("Game Over "+game.score);
+                    System.out.println("Game Over "+game.score+" "+con.genome.ID);
 
 
                 }catch (InterruptedException e){
@@ -112,15 +108,12 @@ public class MenuController extends BaseController {
         con.logic = r;
         return con;
     }
-    public void learn(Pool pool,ArrayList<NEATController> controller){
+    public void learn(ArrayList<NEATController> controller){
         if(best == null)
             best = controller.get(0);
         for(NEATController con:controller){
             
             double fitness = con.evaluateFitness();
-            if(pool.getMaxFitness() < fitness){
-                pool.setMaxFitness(fitness);
-            }
             if(best.genome.fitness < fitness){
                 best = con;
             }
@@ -140,33 +133,34 @@ public class MenuController extends BaseController {
             while(leftToEnqueue.decrementAndGet()>=0){
                 controller = createControllers(pool);
                 ArrayList<Runnable> neatSimulation = neatSimulation(controller);
-                leftExecuting.set(controller.size());
+                leftExecuting.getAndSet(controller.size());
+                CountDownLatch latch = new CountDownLatch(controller.size());
                 for(Runnable r:neatSimulation){
                     exe.submit(() ->{
                             r.run();
-                            leftExecuting.decrementAndGet();
-                            wait.wakeUp();
+                            latch.countDown();
                         }
                     );
                 }
-
-                while(leftExecuting.get()>0){
-                    wait.requestWait();
-                    wait.conditionalWait();
+                
+                try {
+                    latch.await();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(MenuController.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                learn(pool,controller);
+                learn(controller);
 
 
 
-                System.out.println(best.game().rowsCleared+" "+best.genome.fitness+"  "+best.genome.genes.size());
+                System.out.println(best.game().rowsCleared+" "+best.genome.fitness+"  "+best.genome.links.size());
                 pool.newGeneration();
-                System.out.println("New generation: "+pool.stats.generation);
+                System.out.println("New generation: "+pool.generation);
                 update();
                 
-                if(pool.stats.generation%10 == 0){
+                if(pool.generation%10 == 0){
                     new Thread( () ->{
                             try {
-                                save("pool"+pool.stats.generation);
+                                save("pool"+pool.generation);
                             } catch (FileNotFoundException | UnsupportedEncodingException ex) {
                                 Logger.getLogger(MenuController.class.getName()).log(Level.SEVERE, null, ex);
                             }
@@ -194,21 +188,19 @@ public class MenuController extends BaseController {
     public void update() {
         Platform.runLater(() ->{
             enqueueLabel.setText(""+leftToEnqueue.get());
-            generationLabel.setText(pool.stats.generation+"");
+            generationLabel.setText(pool.generation+"");
             if(best != null && best.genome != null)
-                bestScoreLabel.setText((int)best.genome.fitness+"");
+                bestScoreLabel.setText(best.genome.fitness.intValue()+"");
             LEARNING_STEP_DELAY = Integer.parseInt(learningDelayText.getText());
         });
     }
     public void init(){
         
-        pool = new Pool();
-        pool.stats.POPULATION = Integer.parseInt(populationText.getText());
-        pool.stats.INPUTS = 22*10;
-        pool.stats.OUTPUTS = 4;
-        pool.initializePool();
-//        controller = createControllers(pool);
-//        learn(pool,controller);
+        pool = new Pool(22*10,4);
+        pool.startingGeneration(Integer.parseInt(populationText.getText()));
+        for(Genome genome:pool.getPopulation()){
+            Log.print(genome.ID,genome.nodes.size(),genome.links.size());
+        }
         
     }
     public void enqueue() throws InterruptedException{
@@ -247,8 +239,6 @@ public class MenuController extends BaseController {
         ArrayList<String> read = new ArrayList<>(LibraryLB.FileManaging.FileReader.readFromFile(this.generationText.getText()));
         pool = g.fromJson(read.get(0), Pool.class);
         System.out.println("After read");
-        best = createController(pool.best);
-        best.genome.generateNetwork();
         System.out.println(best == null);
 //        update();
         System.out.println("Load done");

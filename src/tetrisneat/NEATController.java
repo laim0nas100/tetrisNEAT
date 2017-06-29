@@ -5,7 +5,7 @@
  */
 package tetrisneat;
 
-import NEATPort.Genome;
+import libneat.Genome;
 import tetrisneat.TetrisGame.GameFrame;
 import static tetrisneat.TetrisGame.formatBoard;
 /**
@@ -24,7 +24,9 @@ public class NEATController implements Runnable {
     public void makeMove(){
         
         TetrisGame game = gm.game;
-        double[] move = genome.evaluateNetworkTopological(formatBoard(game.getBoard()));
+        
+        Double[] move = new Double[4];
+                genome.evaluate(formatBoard(game.getBoard()),move);
         int i = 0;
         int max = 0;
         for(;i<4;i++){

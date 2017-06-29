@@ -24,7 +24,7 @@ import javax.swing.JPanel;
 public class TetrisGame extends JPanel {
     public static long winScore = 500000;
     public static int spawnFluctuation = 4; // max 4
-    public static boolean DETERMINISTIC = false;
+    public static boolean DETERMINISTIC = true;
 //    public static Integer[] usablePieces = {0, 1, 2, 3, 4, 5, 6};
     
 //    public static Integer[] usablePieces = {0};//LINE OK
@@ -467,11 +467,11 @@ public class TetrisGame extends JPanel {
         public JFrame frame;
         public TetrisGame game;
     }
-    public static double[] formatBoard(Integer[][] board){
-        double[] res = new double[board.length*board[0].length];
+    public static Double[] formatBoard(Integer[][] board){
+        Double[] res = new Double[board.length*board[0].length];
         for(int i=0;i<board.length;i++){
             for(int j=0; j<board[i].length;j++){
-                res[i*board[i].length+j] = board[i][j];
+                res[i*board[i].length+j] = board[i][j].doubleValue();
             }
         }
         return res;

@@ -6,6 +6,7 @@
 package tetrisneat;
 
 import LibraryLB.Threads.Sync.ConditionalWait;
+import Misc.F;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Point;
@@ -24,17 +25,17 @@ import javax.swing.JPanel;
 public class TetrisGame extends JPanel {
     public static long winScore = 500000;
     public static int spawnFluctuation = 4; // max 4
-    public static boolean DETERMINISTIC = false;
+    public static boolean DETERMINISTIC = true;
 //    public static Integer[] usablePieces = {0, 1, 2, 3, 4, 5, 6};
     
-//    public static Integer[] usablePieces = {0};//LINE OK
-//    public static Integer[] usablePieces = {1};//DNF >440
-//    public static Integer[] usablePieces = {2};//DNF >100
-    public static Integer[] usablePieces = {3};//BLOCK OK
-//    public static Integer[] usablePieces = {4};//DNF >100
-//    public static Integer[] usablePieces = {5};//DNF >100
-//    public static Integer[] usablePieces = {6};//DNF >100
-//    public static Integer[] usablePieces = {0,3};// LINE + BLOCK
+//    public Integer[] usablePieces = {0};//LINE OK
+//    public Integer[] usablePieces = {1};//DNF >440
+//    public Integer[] usablePieces = {2};//DNF >100
+    public Integer[] usablePieces = {3};//BLOCK OK
+//    public Integer[] usablePieces = {4};//DNF >100
+//    public Integer[] usablePieces = {5};//DNF >100
+//    public Integer[] usablePieces = {6};//DNF >100
+//    public Integer[] usablePieces = {0,3};// LINE + BLOCK
     
     public boolean visible;
     public int rowsCleared;
@@ -130,7 +131,7 @@ public class TetrisGame extends JPanel {
             }
             newPiece();
     }
-    private Random r = new Random();
+    private Random r = F.RND;
     // Put a new, random piece into the dropping position
     public void newPiece() {
             if(winScore<=score){
@@ -357,12 +358,13 @@ public class TetrisGame extends JPanel {
         }
         return max;
     }
-    public static TetrisGame inittNewGame(){
+    public static TetrisGame initNewGame(){
         return new TetrisGame();
     }
-    public static GameFrame initNewGame(boolean visible){
+    public static GameFrame initNewGame(boolean visible, Integer[] pieces){
         JFrame f = new JFrame("Tetris");
         final TetrisGame game = new TetrisGame();
+        game.usablePieces = pieces;
         game.visible = visible;
         game.init();
         f.add(game);
@@ -447,6 +449,21 @@ public class TetrisGame extends JPanel {
                         
                         case KeyEvent.VK_F:
                             System.out.println(Arrays.toString(formatBoard(game.getBoard())));
+                            break;
+                        case KeyEvent.VK_G:
+                            Integer[][] board = game.getBoardNew();
+                            String str = "";
+                            for(Integer[] row:board){
+                                for(Integer i:row){
+                                    if(i == -1){
+                                        str += i;
+                                    }else{
+                                        str+=" "+i;
+                                    }
+                                }
+                                str += "\n";
+                            }
+                            System.out.println(str);
                         }
                         
                         game.waitTool.wakeUp();
@@ -463,10 +480,6 @@ public class TetrisGame extends JPanel {
 
     }
     
-    public static class GameFrame{
-        public JFrame frame;
-        public TetrisGame game;
-    }
     public static double[] formatBoard(Integer[][] board){
         double[] res = new double[board.length*board[0].length];
         for(int i=0;i<board.length;i++){
@@ -476,5 +489,30 @@ public class TetrisGame extends JPanel {
         }
         return res;
     }
+    
+    public Integer[][] getBoardNew(){
+        Integer[][] board = this.getBoard();
+        Integer[] highestColumns = getHighestColumns();
+        for(int i = 0; i < board.length; i++){
+            for(int j = 0; j < board[i].length; j++){
+                if(board[i][j] == 0){
+                    int invertedHeight =  board.length - highestColumns[j];
+                    if(invertedHeight< i){
+                        board[i][j] = -1;
+                    }
+                }
+            }
+        }
+        
+        return board;
+    }
+    
+    public static class GameFrame{
+        public JFrame frame;
+        public TetrisGame game;
+    }
+    
+    
+    
     
 }

@@ -7,11 +7,13 @@ package tetrisneat;
 
 import LibraryLB.FX.SceneManagement.Frame;
 import LibraryLB.FX.SceneManagement.MultiStageManager;
+import LibraryLB.Log;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import javafx.application.Platform;
 import tetrisneat.TetrisGame.GameFrame;
+import tetrisneat.fxml.MenuController;
 
 /**
  *
@@ -24,7 +26,7 @@ public class main {
         ArrayList<GameFrame> games = new ArrayList<>();
         
         for(int i=0;i<gameCountInt;i++){
-            TetrisGame.GameFrame gm = TetrisGame.initNewGame(true);
+            TetrisGame.GameFrame gm = TetrisGame.initNewGame(true, new Integer[]{0, 1, 2, 3, 4, 5, 6});
             games.add(gm);
         }
         
@@ -60,10 +62,13 @@ public class main {
         }else{
             Platform.runLater(() ->{
                 frame.getStage().show();
+                MenuController contr = (MenuController) frame.getController();
+                
             });
         }
     }
     public static void main(String[] args){
+        Log.keepBuffer = false;
         try{
         neatSetup();        
         }catch(Exception e){

@@ -9,7 +9,6 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-
 <VBox xmlns="http://javafx.com/javafx/8.0.151" xmlns:fx="http://javafx.com/fxml/1" fx:controller="tetrisneat.fxml.MenuController">
    <children>
       <Label text="Enqueue Generations">
@@ -29,7 +28,7 @@
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                </HBox.margin>
             </Button>
-            <Label text="Left to Enqueue:">
+            <Label text="In queue:">
                <HBox.margin>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                </HBox.margin>
@@ -135,7 +134,16 @@
                               <VBox>
                                  <children>
                                     <Label text="Random Seed" />
-                                    <TextField fx:id="seedText" text="0" />
+                                    <TextField fx:id="seedText" prefHeight="31.0" prefWidth="8.0" text="0" />
+                                 </children>
+                                 <HBox.margin>
+                                    <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                                 </HBox.margin>
+                              </VBox>
+                              <VBox layoutX="156.0" layoutY="15.0">
+                                 <children>
+                                    <Label text="Target Species" />
+                                    <TextField fx:id="speciesText" prefHeight="31.0" prefWidth="8.0" text="5" />
                                  </children>
                                  <HBox.margin>
                                     <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
@@ -210,6 +218,14 @@
                         <Insets />
                      </VBox.margin>
                   </HBox>
+                  <HBox>
+                     <children>
+                        <CheckBox fx:id="displayWhileLearning" mnemonicParsing="false" selected="true" text="Display While Learning" />
+                     </children>
+                     <VBox.margin>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </HBox>
                </children>
                <HBox.margin>
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
@@ -259,9 +275,12 @@
                   <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                </HBox.margin>
             </VBox>
-            <VBox alignment="CENTER">
+            <VBox alignment="BOTTOM_CENTER">
                <children>
-                  <Button mnemonicParsing="false" onAction="#runConfiguration" text="START" />
+                  <Button mnemonicParsing="false" onAction="#runConfiguration" text="START">
+                     <VBox.margin>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin></Button>
                </children>
             </VBox>
          </children>

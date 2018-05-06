@@ -5,9 +5,9 @@
  */
 package tetrisneat;
 
-import LibraryLB.FX.SceneManagement.Frame;
-import LibraryLB.FX.SceneManagement.MultiStageManager;
-import LibraryLB.Log;
+import lt.lb.commons.FX.SceneManagement.Frame;
+import lt.lb.commons.FX.SceneManagement.MultiStageManager;
+import lt.lb.commons.Log;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;

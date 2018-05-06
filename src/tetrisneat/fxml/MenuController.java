@@ -6,29 +6,30 @@
  */
 package tetrisneat.fxml;
 
-import Evoliution.NEAT.Genome;
-import Evoliution.NEAT.HyperNEAT.HyperGenome;
-import Evoliution.NEAT.HyperNEAT.HyperNEATSpace;
-import Evoliution.NEAT.PoolImpl;
-import Evoliution.NEAT.imp.DefaultHyperNEATMutator;
-import Evoliution.NEAT.interfaces.GenomeMaker;
-import Evoliution.NEAT.interfaces.GenomeMutator;
-import LibraryLB.DelayedLog;
-import LibraryLB.FX.SceneManagement.BaseController;
-import LibraryLB.Log;
-import LibraryLB.Threads.DynamicTaskExecutor;
-import Misc.F;
 import Misc.MyRandom;
 import com.google.gson.Gson;
 import java.io.*;
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import lt.lb.commons.DelayedLog;
+import lt.lb.commons.FX.SceneManagement.BaseController;
+import lt.lb.commons.Log;
+import lt.lb.commons.Threads.DisposableExecutor;
+import lt.lb.commons.Threads.DynamicTaskExecutor;
+import lt.lb.neurevol.Evoliution.Control.Config;
+import lt.lb.neurevol.Evoliution.NEAT.HyperNEAT.HyperGenome;
+import lt.lb.neurevol.Evoliution.NEAT.HyperNEAT.HyperNEATSpace;
+import lt.lb.neurevol.Evoliution.NEAT.*;
+import lt.lb.neurevol.Evoliution.NEAT.imp.*;
+import lt.lb.neurevol.Evoliution.NEAT.interfaces.*;
+import lt.lb.neurevol.Misc.F;
 import tetrisneat.NEATController;
 import tetrisneat.TetrisGame;
 
@@ -101,12 +102,12 @@ public class MenuController extends BaseController {
     public NEATController best = null;
     public NEATController generationBest = null;
     public ArrayList<NEATController> controllers = new ArrayList<>();
-    public PoolImpl pool;
+    public Pool pool;
     public DynamicTaskExecutor exe = new DynamicTaskExecutor();
 
     public DelayedLog dLog = new DelayedLog();
 
-    public ArrayList<NEATController> createControllers(PoolImpl pool) {
+    public ArrayList<NEATController> createControllers(Pool pool) {
         ArrayList<NEATController> cont = new ArrayList<>();
         for (Genome genome : pool.getPopulation()) {
             cont.add(createController(genome));
@@ -410,12 +411,12 @@ public class MenuController extends BaseController {
                 speciesLabel.setText(pool.species.size() + "");
             }
             if (best != null && best.genome != null) {
-                bestScoreLabel.setText((int) best.genome.fitness + "");
+                bestScoreLabel.setText(best.genome.fitness + "");
             } else {
                 bestScoreLabel.setText("0");
             }
             if (generationBest != null && generationBest.genome != null) {
-                bestGenerationScoreLabel.setText((int) generationBest.genome.fitness + "");
+                bestGenerationScoreLabel.setText(generationBest.genome.fitness + "");
             } else {
                 bestGenerationScoreLabel.setText("0");
             }
@@ -449,44 +450,94 @@ public class MenuController extends BaseController {
             layers = 2;
         }
         final int fLayers = layers;
-        GenomeMaker hyperNeatMaker = new GenomeMaker() {
+        GenomeMaker hyperNeatMaker = () -> {
+            ArrayList<Genome> genomes = new ArrayList<>();
+            dim = new int[]{dim[0], dim[1], fLayers};
+            space = new HyperNEATSpace(dim);
+            for (int i = 0; i < generationSize; i++) {
+                HyperGenome genome = new HyperGenome(dim);
+                genome.space = space;
+                genomes.add(genome);
+            }
+            return genomes;
+        };
+
+        GenomeMaker neatMaker = () -> {
+            ArrayList<Genome> genomes = new ArrayList<>();
+            for (int i = 0; i < generationSize; i++) {
+                Genome g1 = new Genome(22 * 10, 4);
+                genomes.add(g1);
+            }
+            return genomes;
+        };
+
+        Config conf = new Config() {
+
+            GenomeBreeder breeder = new DefaultGenomeBreeder();
+            GenomeSimilarityEvaluator sim = new DefaultGenomeSimilarityEvaluator();
+            GenomeSorter sorter = new DefaultGenomeSorter();
+
             @Override
-            public Collection<Genome> initializeGeneration() {
-                ArrayList<Genome> genomes = new ArrayList<>();
-                dim = new int[]{dim[0], dim[1], fLayers};
-                space = new HyperNEATSpace(dim);
-                for (int i = 0; i < generationSize; i++) {
-                    HyperGenome genome = new HyperGenome(dim);
-                    genome.space = space;
-                    genomes.add(genome);
+            public Map<String, Double> getMap() {
+                return new HashMap<>();
+            }
+
+            @Override
+            public Pool getPool() {
+                return pool;
+            }
+
+            @Override
+            public GenomeMaker getGenomeMaker() {
+                if (useHyperNEAT.isSelected()) {
+                    return hyperNeatMaker;
+                } else {
+                    return neatMaker;
                 }
-                return genomes;
+            }
+
+            @Override
+            public GenomeBreeder getGenomeBreeder() {
+                return breeder;
+            }
+
+            @Override
+            public GenomeMutator getGenomeMutator() {
+                return mutator;
+            }
+
+            @Override
+            public GenomeSorter getGenomeSorter() {
+                return sorter;
+            }
+
+            @Override
+            public GenomeSimilarityEvaluator getGenomeSimilarityEvaluater() {
+                return sim;
+            }
+
+            @Override
+            public Species newSpecies() {
+                Species spec = new Species();
+                spec.conf = this;
+                return spec;
+            }
+
+            DisposableExecutor determ = new DisposableExecutor(1);
+            DisposableExecutor mainExe = new DisposableExecutor(4);
+
+            @Override
+            public Executor getSequentialExecutor() {
+                return determ;
+            }
+
+            @Override
+            public Executor getExecutor() {
+                return mainExe;
             }
         };
 
-        GenomeMaker neatMaker = new GenomeMaker() {
-            @Override
-            public Collection<Genome> initializeGeneration() {
-
-                ArrayList<Genome> genomes = new ArrayList<>();
-                for (int i = 0; i < generationSize; i++) {
-                    Genome g = new Genome(22 * 10, 4);
-                    genomes.add(g);
-                }
-                return genomes;
-            }
-        };
-
-//        mutator = new DefaultNEATMutator();
-//        mutator = new DefaultHyperNEATMutator();
-        GenomeMaker maker;
-        if (useHyperNEAT.isSelected()) {
-            maker = hyperNeatMaker;
-        } else {
-            maker = neatMaker;
-        }
-
-        pool = new PoolImpl(maker, mutator);
+        pool = new Pool(conf);
 //        pool = new Pool(22*10, 4, Integer.parseInt(populationText.getText()));
 
 //        pool.stats.POPULATION = Integer.parseInt(populationText.getText());
@@ -545,7 +596,7 @@ public class MenuController extends BaseController {
 //        }
         Log.print("All time best:" + pool.allTimeBest.fitness);
         String toJson = g.toJson(pool);
-        LibraryLB.FileManaging.FileReader.writeToFile(where, Arrays.asList(toJson));
+        lt.lb.commons.FileManaging.FileReader.writeToFile(where, Arrays.asList(toJson));
         Log.print("Saved as:" + where);
 //        pool.restoreAfterSerialize();
     }
@@ -557,10 +608,9 @@ public class MenuController extends BaseController {
         }
         try {
             Log.print("Before read");
-            ArrayList<String> read = new ArrayList<>(LibraryLB.FileManaging.FileReader.readFromFile(this.generationText.getText()));
-            pool = g.fromJson(read.get(0), PoolImpl.class);
+            ArrayList<String> read = new ArrayList<>(lt.lb.commons.FileManaging.FileReader.readFromFile(this.generationText.getText()));
+            pool = g.fromJson(read.get(0), Pool.class);
             Log.print("After read");
-            pool.mutator = mutator;
 //            if(useHyperNEAT.isSelected()){
 //                for(Genome genome:pool.getPopulation()){
 //                    if(genome instanceof HyperGenome){
